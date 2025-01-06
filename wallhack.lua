@@ -130,7 +130,7 @@ local function toggleMenu()
 end
 
 UserInputService.InputBegan:Connect(function(input)
-    if input.KeyCode == Enum.KeyCode.Insert then
+    if input.KeyCode == Enum.KeyCode.F8 then
         toggleMenu()
     end
 end)
@@ -149,3 +149,5 @@ task.spawn(function()
         task.wait(2)
     end
 end)
+
+createMenu()
