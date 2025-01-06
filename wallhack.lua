@@ -1,11 +1,8 @@
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
 local boxVisible = false
 local boxes = {}
-local menuOpen = false
 local screenGui, frame, toggleButton
 
--- Funktion zum Erstellen der Boxen um den Charakter
 local function createBox(character)
     if character and character:FindFirstChild("HumanoidRootPart") then
         local box = Instance.new("Part")
@@ -29,7 +26,6 @@ local function createBox(character)
     end
 end
 
--- Funktion zum Umschalten der Sichtbarkeit der Boxen
 local function toggleBoxes()
     boxVisible = not boxVisible
     for _, box in pairs(boxes) do
@@ -37,7 +33,6 @@ local function toggleBoxes()
     end
 end
 
--- Funktion zum Erstellen des Menüs
 local function createMenu()
     screenGui = Instance.new("ScreenGui")
     screenGui.Name = "BoxMenu"
@@ -61,25 +56,18 @@ local function createMenu()
     end)
 end
 
--- Funktion zum Öffnen des Menüs direkt beim Spielstart
 local function openMenuOnStart()
-    if not menuOpen then
-        menuOpen = true
-        createMenu()
-    end
+    createMenu()
 end
 
--- Menü beim Spielstart öffnen
 openMenuOnStart()
 
--- Wenn ein neuer Spieler hinzukommt, erstelle Boxen für seinen Charakter
 game.Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         createBox(character)
     end)
 end)
 
--- Wenn der lokale Spieler bereits im Spiel ist, erstelle Boxen für ihn
 if player.Character then
-    createBox(player.Character)
+    createBox(player.Character)  
 end
