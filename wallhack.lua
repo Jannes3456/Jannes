@@ -1,45 +1,23 @@
+-- Beispiel: Kopfbewegung für den Spieler, ohne die FOV zu ändern
 local player = game.Players.LocalPlayer
-local mouse = player:GetMouse()
-local targetPart = nil
+local character = player.Character or player.CharacterAdded:Wait()
 
--- Funktion zum Finden des nächstgelegenen Ziels
-function getClosestTarget()
-    local closestTarget = nil
-    local closestDistance = math.huge  -- Setze eine sehr hohe Anfangsdistanz
-    
-    -- Durchsuche alle NPCs oder Objekte in der Umgebung
-    for _, obj in pairs(workspace:GetChildren()) do
-        if obj:IsA("Model") and obj:FindFirstChild("Humanoid") then  -- Prüfe, ob es ein NPC ist
-            local part = obj:FindFirstChild("Head")  -- Nehme den Kopf des NPCs als Ziel
-            if part then
-                local distance = (part.Position - mouse.Hit.p).Magnitude
-                if distance < closestDistance then
-                    closestTarget = part
-                    closestDistance = distance
-                end
-            end
-        end
-    end
-    return closestTarget
-end
+-- Warte, bis der Humanoid und Kopf vorhanden sind
+local humanoid = character:WaitForChild("Humanoid")
+local head = character:WaitForChild("Head")
 
--- Zielerfassungs-Funktion
-function aimAtTarget()
-    targetPart = getClosestTarget()
-    if targetPart then
-        -- Berechne den Vektor zum Ziel
-        local targetPosition = targetPart.Position
-        -- Erstelle eine Zielrichtung
-        local direction = (targetPosition - player.Character.HumanoidRootPart.Position).unit
-        -- Drehe den Charakter in diese Richtung
-        player.Character:SetPrimaryPartCFrame(CFrame.new(player.Character.HumanoidRootPart.Position, targetPosition))
+-- Funktion für zufällige Kopfbewegung ohne die Kamera zu beeinflussen
+local function randomHeadRotation()
+    while true do
+        -- Setze zufällige Drehung für den Kopf
+        local randomRotation = Vector3.new(math.random(-15, 15), math.random(-15, 15), math.random(-15, 15))
+        
+        -- Wende die Rotation nur auf den Kopf an
+        head.CFrame = head.CFrame * CFrame.Angles(math.rad(randomRotation.X), math.rad(randomRotation.Y), math.rad(randomRotation.Z))
+        
+        wait(0.1) -- Warte 100 ms bevor der nächste zufällige Wert gesetzt wird (0.1 Sekunden)
     end
 end
 
--- Verfolge das Ziel, wenn die rechte Maustaste gedrückt wird
-mouse.Button2Down:Connect(function()
-    while mouse.Button2Down do
-        aimAtTarget()
-        wait(0.05)  -- Aktualisiere das Ziel alle 50 Millisekunden
-    end
-end)
+-- Starte die Kopfrotation
+randomHeadRotation()
