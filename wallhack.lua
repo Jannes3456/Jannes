@@ -2,7 +2,10 @@ local player = game.Players.LocalPlayer
 local mouse = player:GetMouse()
 local boxVisible = false
 local boxes = {}
+local menuOpen = false
+local screenGui, frame, toggleButton
 
+-- Funktion zum Erstellen der Boxen um den Charakter
 local function createBox(character)
     if character and character:FindFirstChild("HumanoidRootPart") then
         local box = Instance.new("Part")
@@ -26,6 +29,7 @@ local function createBox(character)
     end
 end
 
+-- Funktion zum Umschalten der Sichtbarkeit der Boxen
 local function toggleBoxes()
     boxVisible = not boxVisible
     for _, box in pairs(boxes) do
@@ -33,18 +37,49 @@ local function toggleBoxes()
     end
 end
 
-mouse.KeyDown:Connect(function(key)
-    if key:lower() == "e" then
-        toggleBoxes()
-    end
-end)
+-- Funktion zum Erstellen des Menüs
+local function createMenu()
+    screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "BoxMenu"
+    screenGui.Parent = player.PlayerGui
 
+    frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 150)
+    frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    frame.Parent = screenGui
+
+    toggleButton = Instance.new("TextButton")
+    toggleButton.Size = UDim2.new(0, 180, 0, 50)
+    toggleButton.Position = UDim2.new(0, 10, 0, 50)
+    toggleButton.Text = "Toggle Box Visibility"
+    toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleButton.Parent = frame
+
+    toggleButton.MouseButton1Click:Connect(function()
+        toggleBoxes()
+    end)
+end
+
+-- Funktion zum Öffnen des Menüs direkt beim Spielstart
+local function openMenuOnStart()
+    if not menuOpen then
+        menuOpen = true
+        createMenu()
+    end
+end
+
+-- Menü beim Spielstart öffnen
+openMenuOnStart()
+
+-- Wenn ein neuer Spieler hinzukommt, erstelle Boxen für seinen Charakter
 game.Players.PlayerAdded:Connect(function(player)
     player.CharacterAdded:Connect(function(character)
         createBox(character)
     end)
 end)
 
+-- Wenn der lokale Spieler bereits im Spiel ist, erstelle Boxen für ihn
 if player.Character then
     createBox(player.Character)
 end
