@@ -17,7 +17,11 @@ local function createBox(character)
         table.insert(boxes, box)
 
         game:GetService("RunService").Heartbeat:Connect(function()
-            box.Position = character.HumanoidRootPart.Position
+            if character:FindFirstChild("HumanoidRootPart") then
+                box.Position = character.HumanoidRootPart.Position
+            else
+                box:Destroy()
+            end
         end)
     end
 end
