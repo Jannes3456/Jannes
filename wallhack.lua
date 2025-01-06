@@ -1,14 +1,13 @@
-local player = game.Players.LocalPlayer
-local boxVisible = false
-local boxes = {}
-local screenGui, frame, toggleButton
-local highlights = {}
-
+local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
+local DrawingService = game:GetService("Drawing")
+
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local Humanoid = Character:WaitForChild("Humanoid")
 
 local fovCircle = Drawing.new("Circle")
 fovCircle.Thickness = 2
@@ -17,34 +16,17 @@ fovCircle.Color = Color3.fromRGB(54, 0, 198)
 fovCircle.Filled = false
 fovCircle.Transparency = 1
 
-local function createBox(character)
-    if character and character:FindFirstChild("HumanoidRootPart") then
-        local box = Instance.new("Part")
-        box.Size = Vector3.new(6, 10, 6)
-        box.Position = character.HumanoidRootPart.Position
-        box.Anchored = true
-        box.CanCollide = false
-        box.Transparency = 0.5
-        box.BrickColor = BrickColor.new("Bright red")
-        box.Parent = workspace
-        
-        table.insert(boxes, box)
+local highlights = {}
+local menuOpen = false
+local menuFrame
+local fovInput
+local toggleFovCheckbox
+local toggleHighlightCheckbox
 
-        game:GetService("RunService").Heartbeat:Connect(function()
-            if character:FindFirstChild("HumanoidRootPart") then
-                box.Position = character.HumanoidRootPart.Position
-            else
-                box:Destroy()
-            end
-        end)
-    end
-end
-
-local function toggleBoxes()
-    boxVisible = not boxVisible
-    for _, box in pairs(boxes) do
-        box.Transparency = boxVisible and 0.5 or 1
-    end
+local function updateFovCircle()
+    local screenCenter = Camera.ViewportSize / 2
+    fovCircle.Position = Vector2.new(screenCenter.X, screenCenter.Y)
+    fovCircle.Visible = true
 end
 
 local function createHighlightForCharacter(character)
@@ -76,115 +58,94 @@ local function highlightPlayer(player)
     end
 end
 
-local function updateFovCircle()
-    local screenCenter = Camera.ViewportSize / 2
-    fovCircle.Position = Vector2.new(screenCenter.X, screenCenter.Y)
-    fovCircle.Visible = true
-end
-
-local function isPlayerHeadInFov(player)
-    local character = player.Character
-    if not character then return false end
-
-    local head = character:FindFirstChild("Head")
-    if not head then return false end
-
-    local screenPosition, onScreen = Camera:WorldToViewportPoint(head.Position)
-    if onScreen then
-        local screenCenter = Camera.ViewportSize / 2
-        local distanceFromCenter = (Vector2.new(screenPosition.X, screenPosition.Y) - Vector2.new(screenCenter.X, screenCenter.Y)).Magnitude
-        return distanceFromCenter <= fovCircle.Radius
-    end
-    return false
-end
-
-local function lockCameraOnHead(player)
-    local character = player.Character
-    if character then
-        local head = character:FindFirstChild("Head")
-        if head then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, head.Position)
-        end
-    end
-end
-
-UserInputService.JumpRequest:Connect(function()
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-    end
-end)
-
 local function createMenu()
-    screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "BoxMenu"
-    screenGui.Parent = player.PlayerGui
+    menuFrame = Instance.new("Frame")
+    menuFrame.Size = UDim2.new(0, 300, 0, 200)
+    menuFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    menuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    menuFrame.Visible = false
+    menuFrame.Parent = game.Players.LocalPlayer.PlayerGui
 
-    frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 150)
-    frame.Position = UDim2.new(0.5, -100, 0.5, -75)
-    frame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-    frame.Parent = screenGui
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 30)
+    title.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    title.Text = "Settings Menu"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.TextSize = 20
+    title.Parent = menuFrame
 
-    toggleButton = Instance.new("TextButton")
-    toggleButton.Size = UDim2.new(0, 180, 0, 50)
-    toggleButton.Position = UDim2.new(0, 10, 0, 50)
-    toggleButton.Text = "Toggle Box Visibility"
-    toggleButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    toggleButton.Parent = frame
+    toggleFovCheckbox = Instance.new("TextButton")
+    toggleFovCheckbox.Size = UDim2.new(0, 280, 0, 40)
+    toggleFovCheckbox.Position = UDim2.new(0, 10, 0, 40)
+    toggleFovCheckbox.Text = "Toggle FOV Circle"
+    toggleFovCheckbox.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleFovCheckbox.Parent = menuFrame
+    toggleFovCheckbox.MouseButton1Click:Connect(function()
+        fovCircle.Visible = not fovCircle.Visible
+    end)
 
-    toggleButton.MouseButton1Click:Connect(function()
-        toggleBoxes()
+    toggleHighlightCheckbox = Instance.new("TextButton")
+    toggleHighlightCheckbox.Size = UDim2.new(0, 280, 0, 40)
+    toggleHighlightCheckbox.Position = UDim2.new(0, 10, 0, 90)
+    toggleHighlightCheckbox.Text = "Toggle Player Highlights"
+    toggleHighlightCheckbox.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    toggleHighlightCheckbox.Parent = menuFrame
+    toggleHighlightCheckbox.MouseButton1Click:Connect(function()
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer then
+                local character = player.Character
+                if character then
+                    if highlights[character] then
+                        for _, highlight in ipairs(highlights[character]) do
+                            highlight:Destroy()
+                        end
+                        highlights[character] = nil
+                    else
+                        highlightPlayer(player)
+                    end
+                end
+            end
+        end
+    end)
+
+    fovInput = Instance.new("TextBox")
+    fovInput.Size = UDim2.new(0, 280, 0, 40)
+    fovInput.Position = UDim2.new(0, 10, 0, 140)
+    fovInput.Text = tostring(fovCircle.Radius)
+    fovInput.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    fovInput.Parent = menuFrame
+    fovInput.FocusLost:Connect(function()
+        local radius = tonumber(fovInput.Text)
+        if radius and radius > 0 then
+            fovCircle.Radius = radius
+        else
+            fovInput.Text = tostring(fovCircle.Radius)
+        end
     end)
 end
 
-local function openMenuOnStart()
-    createMenu()
+local function toggleMenu()
+    menuOpen = not menuOpen
+    menuFrame.Visible = menuOpen
 end
 
-openMenuOnStart()
-
-game.Players.PlayerAdded:Connect(function(player)
-    player.CharacterAdded:Connect(function(character)
-        createBox(character)
-        highlightPlayer(player)
-    end)
+UserInputService.InputBegan:Connect(function(input)
+    if input.KeyCode == Enum.KeyCode.Insert then
+        toggleMenu()
+    end
 end)
-
-if player.Character then
-    createBox(player.Character)
-    highlightPlayer(player)
-end
 
 RunService.RenderStepped:Connect(function()
     updateFovCircle()
-
-    for _, p in ipairs(Players:GetPlayers()) do
-        if p ~= player and p.Character then
-            if isPlayerHeadInFov(p) then
-                lockCameraOnHead(p)
-            end
-        end
-    end
 end)
 
 task.spawn(function()
     while true do
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= player and p.Character then
-                highlightPlayer(p)
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= LocalPlayer and player.Character then
+                highlightPlayer(player)
             end
         end
         task.wait(2)
     end
 end)
-
-Players.PlayerRemoving:Connect(function(player)
-    if player.Character and highlights[player.Character] then
-        for _, highlight in ipairs(highlights[player.Character]) do
-            highlight:Destroy()
-        end
-        highlights[player.Character] = nil
-    end
-end)
-
