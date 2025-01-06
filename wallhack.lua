@@ -1,67 +1,7 @@
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
-local Camera = Workspace.CurrentCamera
-local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local DrawingService = game:GetService("Drawing")
-
-local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
-
-local fovCircle = Drawing.new("Circle")
-fovCircle.Thickness = 2
-fovCircle.Radius = 100
-fovCircle.Color = Color3.fromRGB(54, 0, 198)
-fovCircle.Filled = false
-fovCircle.Transparency = 1
-
-local highlights = {}
-local menuOpen = false
-local menuFrame
-local fovInput
-local toggleFovCheckbox
-local toggleHighlightCheckbox
-
-local function updateFovCircle()
-    local screenCenter = Camera.ViewportSize / 2
-    fovCircle.Position = Vector2.new(screenCenter.X, screenCenter.Y)
-    fovCircle.Visible = true
-end
-
-local function createHighlightForCharacter(character)
-    for _, part in ipairs(character:GetChildren()) do
-        if part:IsA("BasePart") then
-            local highlight = Instance.new("Highlight")
-            highlight.Adornee = character
-            highlight.Parent = character
-            highlight.FillColor = Color3.fromRGB(255, 0, 0)
-            highlight.FillTransparency = 0.7
-            highlight.OutlineColor = Color3.fromRGB(255, 0, 0)
-            highlight.OutlineTransparency = 0.5
-            table.insert(highlights[character], highlight)
-        end
-    end
-end
-
-local function highlightPlayer(player)
-    local character = player.Character
-    if character then
-        if highlights[character] then
-            for _, highlight in ipairs(highlights[character]) do
-                highlight:Destroy()
-            end
-            highlights[character] = nil
-        end
-        highlights[character] = {}
-        createHighlightForCharacter(character)
-    end
-end
-
 local function createMenu()
     menuFrame = Instance.new("Frame")
-    menuFrame.Size = UDim2.new(0, 300, 0, 200)
-    menuFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    menuFrame.Size = UDim2.new(0, 300, 0, 240)  -- Increased height to accommodate new button
+    menuFrame.Position = UDim2.new(0.5, -150, 0.5, -120)  -- Adjusted to center
     menuFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     menuFrame.Visible = false
     menuFrame.Parent = game.Players.LocalPlayer.PlayerGui
@@ -121,6 +61,17 @@ local function createMenu()
         else
             fovInput.Text = tostring(fovCircle.Radius)
         end
+    end)
+
+    -- New button to change FOV circle color
+    local changeColorButton = Instance.new("TextButton")
+    changeColorButton.Size = UDim2.new(0, 280, 0, 40)
+    changeColorButton.Position = UDim2.new(0, 10, 0, 190)
+    changeColorButton.Text = "Change FOV Circle Color"
+    changeColorButton.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
+    changeColorButton.Parent = menuFrame
+    changeColorButton.MouseButton1Click:Connect(function()
+        fovCircle.Color = Color3.fromRGB(math.random(0, 255), math.random(0, 255), math.random(0, 255))
     end)
 end
 
